@@ -1,8 +1,7 @@
 
 use std::io::{stderr, Write};
-
-
-
+mod math;
+use math::{Float3, ColorRGB};
 fn main() {
     const IMAGE_WIDTH: u64 = 256;
     const IMAGE_HEIGHT: u64 = 256;
@@ -29,4 +28,6 @@ fn main() {
         }
     }
     eprintln!("\nDone.");
+
+    
 }
