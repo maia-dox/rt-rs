@@ -1,25 +1,22 @@
 
 mod math;
-use math::{Float3, ColorRGB, Ray, Point3};
-
+use math::{Float3, ColorRGB, Point3, Ray, Hit, HitRecord};
+mod sphere;
+use sphere::{Sphere, World};
 // ray-tracer following the Ray Tracing in a Weekend book in Rust
 use std::io::{stderr, Write};
 
 
 
-fn ray_color(r: &Ray) -> ColorRGB {
+fn ray_color(r: &Ray, world: &World) -> ColorRGB {
 
-   let t = hit_sphere(Point3::new(0.0, 0.0, -1.0), 0.5, r);
-
-    if t > 0.0 {
-        let n = (r.at(t) - Float3::new(0.0, 0.0, -1.0)).normalized(); // normalized surface normal
-        return 0.5 * ColorRGB::new(n.x() + 1.0, n.y() + 1.0, n.z() + 1.0);
+    if let Some(rec) = world.hit(r, 0.0, f64::INFINITY) {
+        0.5 * (rec.normal + ColorRGB::new(1.0, 1.0, 1.0))
+    } else {
+        let unit_direction = r.direction().normalized();
+        let t = 0.5 * (unit_direction.y() + 1.0);
+        (1.0 - t) * ColorRGB::new(1.0, 1.0, 1.0) + t * ColorRGB::new(0.5, 0.7, 1.0)
     }
-
-    let unit_direction = r.direction().normalized();
-    let t = 0.5 * (unit_direction.y() + 1.0);
-    (1.0 - t) * ColorRGB::new(1.0, 1.0, 1.0) + t * ColorRGB::new(0.5, 0.7, 1.0)
-
 }
 
 fn hit_sphere(center: Point3, radius: f64, r: &Ray) -> f64 {
@@ -34,7 +31,6 @@ fn hit_sphere(center: Point3, radius: f64, r: &Ray) -> f64 {
     } else {
         (-half_b - discriminant.sqrt()) /  a
     }
-
 }
 
 
@@ -43,6 +39,11 @@ fn main() {
     const ASPECT_RATIO: f64 = 16.0 / 9.0;
     const IMAGE_WIDTH: u64 = 256;
     const IMAGE_HEIGHT: u64 = ((256 as f64) / ASPECT_RATIO) as u64;
+
+    let mut world = World::new();
+    world.push(Box::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5)));
+    world.push(Box::new(Sphere::new(Point3::new(0.0, -100.5, -1.0), 100.0)));
+
 
     let viewport_height = 2.0;
     let viewport_width = ASPECT_RATIO * viewport_height;
@@ -71,7 +72,7 @@ fn main() {
 
             let r = Ray::new(origin, 
                             lower_left_corner + u * horizontal + v * vertical - origin);
-            let pixel_color = ray_color(&r);
+            let pixel_color = ray_color(&r, &world);
 
             println!("{}", pixel_color.format_color());
         }
