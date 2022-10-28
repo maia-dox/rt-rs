@@ -13,11 +13,11 @@ use rand::Rng;
 fn ray_color(r: &Ray, world: &World, depth: u64) -> ColorRGB {
 
     if depth <= 0 {
-        return ColorRGB::new(0.1, 0.1, 0.1)
+        return ColorRGB::new(0.0, 0.0, 0.0)
     }
 
-    if let Some(rec) = world.hit(r, 0.0, f64::INFINITY) {
-        let target = rec.p + rec.normal + Float3::random_in_unit_sphere();
+    if let Some(rec) = world.hit(r, 0.001, f64::INFINITY) {
+        let target = rec.p + rec.normal + Float3::random_in_hemisphere(rec.normal);
         let r = Ray::new(rec.p, target - rec.p);
        
         0.5 * ray_color(&r, world, depth-1)
@@ -47,7 +47,7 @@ fn hit_sphere(center: Point3, radius: f64, r: &Ray) -> f64 {
 fn main() {
     
     const ASPECT_RATIO: f64 = 16.0 / 9.0;
-    const IMAGE_WIDTH: u64 = 1024;
+    const IMAGE_WIDTH: u64 = 512;
     const IMAGE_HEIGHT: u64 = ((IMAGE_WIDTH as f64) / ASPECT_RATIO) as u64;
     const SAMPLES_PER_PIXEL: u64 = 100;
     const MAX_DEPTH: u64 = 5;

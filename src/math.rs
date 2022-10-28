@@ -169,6 +169,15 @@ impl Float3 {
         }
     }
 
+    pub fn random_in_hemisphere(normal:Float3) -> Float3 {
+        let in_unit_sphere = Self::random_in_unit_sphere();
+        if in_unit_sphere.dot(normal) > 0.0 {
+            in_unit_sphere
+        } else {
+            (-1.0) * in_unit_sphere
+        }
+    }
+
     pub fn format_color(self, samples_per_pixel: u64) -> String {
 
         let ir = (256.0 * (self[0] / (samples_per_pixel as f64)).clamp(0.0, 0.999)) as u64;
@@ -217,6 +226,7 @@ impl Ray {
 pub struct HitRecord {
     pub p: Point3,
     pub normal: Float3,
+    pub mat: Rc<dyn scatter="">,
     pub t: f64,
     pub front_face: bool
 }
