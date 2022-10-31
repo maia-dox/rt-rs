@@ -1,5 +1,5 @@
 # rtrs
-A basic raytracer made in rust, 
+A basic raytracer made in rust
 ![Alt text](example_output.png "Optional title")
 
 
