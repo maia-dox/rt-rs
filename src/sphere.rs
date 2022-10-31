@@ -1,21 +1,24 @@
+use std::sync::Arc;
 use super::math::{Float3, Point3, Hit, HitRecord, Ray};
-
+use super::material::Scatter;
 pub struct Sphere {
     center: Point3, 
-    radius: f64
+    radius: f64,
+    mat: Arc<dyn Scatter>
 }
 
 impl Sphere {
-    pub fn new(cen: Point3, r: f64) -> Sphere {
+    pub fn new(cen: Point3, r: f64, m: Arc<dyn Scatter>) -> Sphere {
         Sphere {
             center: cen, 
-            radius: r
+            radius: r,
+            mat: m
         }
     }
 }
 
 impl Hit for Sphere {
-    fn hit(&self, r:&Ray, t_min: f64, t_max: f64) ->Option<HitRecord> {
+    fn hit(&self, r:&Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let oc = r.origin() - self.center;
         
         let a = r.direction().length().powi(2);
@@ -44,6 +47,7 @@ impl Hit for Sphere {
         let mut rec = HitRecord {
             t: root,
             p: p,
+            mat: self.mat.clone(),
             normal: Float3::new(0.0, 0.0, 0.0),
             front_face: false
         };
@@ -54,7 +58,6 @@ impl Hit for Sphere {
 
         Some(rec)
     }
-
 }
 
 // pub struct World {
@@ -76,5 +79,4 @@ impl Hit for World {
         }
         tmp_rec
     }
-
 }

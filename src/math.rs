@@ -1,8 +1,12 @@
 use std::ops::{Index, IndexMut, Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign, Range};
-
+use std::sync::Arc;
 use std::fmt;
 use std::fmt::Display;
 use rand::prelude::*;
+
+use super::material::Scatter;
+
+// specifically the math for our vector impl (Float3), Hits and Rays
 
 #[derive(Clone, Copy)]
 pub struct Float3 {
@@ -80,14 +84,6 @@ impl Mul<f64> for Float3 {
     }
 }
 
-impl MulAssign<f64> for Float3 {
-    fn mul_assign(&mut self, other: f64) -> () {
-        *self = Float3 {
-            data: [self[0] * other, self[1] * other, self[2] * other]
-        };
-    }
-}
-
 impl Mul<Float3> for f64 {
     type Output = Float3;
 
@@ -95,6 +91,32 @@ impl Mul<Float3> for f64 {
         Float3 {
             data: [self * other[0], self * other[1], self * other[2]]
         }
+    }
+}
+
+impl Mul<Float3> for Float3 {
+    type Output = Float3;
+
+    fn mul(self, other: Float3) -> Float3 {
+        Float3 {
+            data: [self[0] * other[0], self[1] * other[1], self[2] * other[2]]
+        }
+    }
+}
+
+impl MulAssign<Float3> for Float3 {
+    fn mul_assign(&mut self, other: Float3) -> () {
+        *self = Float3 {
+            data: [self[0] * other[0], self[1] * other[1], self[2] * other[2]]
+        };
+    }
+}
+
+impl MulAssign<f64> for Float3 {
+    fn mul_assign(&mut self, other: f64) -> () {
+        *self = Float3 {
+            data: [self[0] * other, self[1] * other, self[2] * other]
+        };
     }
 }
 
@@ -178,6 +200,36 @@ impl Float3 {
         }
     }
 
+    pub fn random_in_unit_disk() -> Float3 {
+        let mut rng = rand::thread_rng();
+
+        loop {
+            let p = Float3::new(rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0), 0.0);
+            if p.length() < 1.0 {
+                return p;
+            }
+        }
+    }
+
+    pub fn almost_zero(self) -> bool {
+        const EPS: f64 = 1.0e-8;
+        self[0].abs() < EPS && self[1].abs() < EPS && self[2].abs() < EPS && self[2].abs() < EPS
+    }
+
+    pub fn reflect(self, n: Float3) -> Float3 {
+        self - 2.0 * self.dot(n) * n
+    }
+
+
+    // snell's law
+    pub fn refract(self, n: Float3, etai_over_etat: f64) -> Float3 {
+        let cos_theta = ((-1.0) * self).dot(n).min(1.0);
+        let r_out_perp = etai_over_etat * (self + cos_theta * n);
+        let r_out_parallel = -(1.0 - r_out_perp.length().powi(2)).abs().sqrt() * n;
+        
+        r_out_perp + r_out_parallel
+    }
+
     pub fn format_color(self, samples_per_pixel: u64) -> String {
 
         let ir = (256.0 * (self[0] / (samples_per_pixel as f64)).clamp(0.0, 0.999)) as u64;
@@ -193,7 +245,6 @@ impl Display for Float3 {
         write!(f, "({}, {}, {})", self[0], self[1], self[2])
     }
 }
-
 
 // ------------------------------------------------------------------------
 
@@ -226,7 +277,7 @@ impl Ray {
 pub struct HitRecord {
     pub p: Point3,
     pub normal: Float3,
-    pub mat: Rc<dyn scatter="">,
+    pub mat: Arc<dyn Scatter>,
     pub t: f64,
     pub front_face: bool
 }
@@ -240,12 +291,8 @@ impl HitRecord {
             (-1.0) * outward_normal
         };
     }
-
-    // fn hit(&self, r:&Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
-
 }
 
-pub trait Hit {
+pub trait Hit : Send + Sync {
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
 }
-
